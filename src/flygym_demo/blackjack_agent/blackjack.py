@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import random
 
 State = tuple[int, int, bool]
@@ -23,7 +23,7 @@ def hand_value(hand: list[int]) -> tuple[int, bool]:
     return value, usable_ace
 
 
-@dataclass(slots=True)
+@dataclass
 class BlackjackEnv:
     """A compact infinite-deck Blackjack environment.
 
@@ -32,11 +32,11 @@ class BlackjackEnv:
     """
 
     rng: random.Random | None = None
+    player: list[int] = field(default_factory=list)
+    dealer: list[int] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.rng = self.rng or random.Random()
-        self.player: list[int] = []
-        self.dealer: list[int] = []
 
     def _draw(self) -> int:
         return self.rng.randint(1, 10)

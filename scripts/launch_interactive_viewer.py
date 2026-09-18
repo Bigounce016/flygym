@@ -1,3 +1,8 @@
+import time
+
+import mujoco
+import numpy as np
+
 from flygym.anatomy import (
     Skeleton,
     JointPreset,
@@ -18,7 +23,7 @@ neutral_pose = KinematicPosePreset.NEUTRAL
 spawn_position = (0, 0, 0.8)  # xyz in mm
 spawn_rotation = Rotation3D("quat", (1, 0, 0, 0))  # wxyz in quaternion
 bodysegs_with_ground_contact = ContactBodiesPreset.LEGS_THORAX_ABDOMEN_HEAD
-run_async = False  # might need to change to True if running launching from a notebook
+run_async = True  # launch viewer in a separate process so we can keep animating
 
 
 def main():
@@ -39,7 +44,13 @@ def main():
     fly.add_joint_sites(JointPreset.LEGS_ONLY.to_joint_list())
 
     fly.colorize()
-    fly.add_tracking_camera(name="trackingcam")
+    fly.add_tracking_camera(
+        name="trackingcam",
+        mode="track",
+        pos_offset=(-0.5, -7.5, 5),
+        rotation=Rotation3D("xyaxes", (1, 0, 0, 0, 0.6, 0.8)),
+        fovy=30.0,
+    )
 
     world = FlatGroundWorld()
     world.add_fly(
@@ -49,11 +60,22 @@ def main():
         bodysegs_with_ground_contact=bodysegs_with_ground_contact,
     )
 
-    # Compile model and get data container
     mj_model, mj_data = world.compile()
 
-    # Launch interactive viewer
+    # Gently animate the fly while the viewer stays open.
+    amp = 0.6
+    phase = 0.0
+    print("Launching fly viewer... Use the camera controls to orbit/zoom; close the window to quit.")
     launch_interactive_viewer(mj_model, mj_data, run_async=run_async)
+
+    try:
+        while True:
+            phase += 0.05
+            mj_data.ctrl[:] = amp * np.sin(phase + np.linspace(0, 2 * np.pi, mj_model.nu, endpoint=False))
+            mujoco.mj_step(mj_model, mj_data)
+            time.sleep(0.02)
+    except KeyboardInterrupt:
+        print("Viewer closed.")
 
 
 if __name__ == "__main__":
