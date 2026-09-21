@@ -85,6 +85,7 @@ rl = [
     "gymnasium>=1.0,<2.0",
     "stable_baselines3>=2.7,<3.0",
     "tensorboard>=2.20,<3.0",
+    "torch>=2.0",
     # tensorboard still imports pkg_resources, which setuptools removed in 81.
     "setuptools<81",
 ]

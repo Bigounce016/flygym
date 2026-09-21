@@ -86,6 +86,7 @@ def run_live_elden_ring_demo(
     frame_source: FrameSource | None = None,
     observation_provider: Callable[[np.ndarray], FlyGameObservation] | None = None,
     controller: Controller | None = None,
+    action_provider: Callable[[np.ndarray], ActionCommand] | None = None,
     max_steps: int | None = None,
 ) -> None:
     """Run the fly agent against synthetic or captured Elden Ring observations.
@@ -96,6 +97,8 @@ def run_live_elden_ring_demo(
     """
     if (frame_source is None) != (observation_provider is None):
         raise ValueError("frame_source and observation_provider must be supplied together")
+    if action_provider is not None and frame_source is None:
+        raise ValueError("action_provider requires a frame_source")
     fly, neutral_pose, dofs = build_elden_ring_fly()
     world = FlatGroundWorld()
     world.add_fly(
@@ -125,9 +128,13 @@ def run_live_elden_ring_demo(
     step = 0
     try:
         while max_steps is None or step < max_steps:
-            if frame_source is not None and observation_provider is not None:
-                observation = observation_provider(frame_source.capture())
-            command = policy.decide(observation)
+            frame = frame_source.capture() if frame_source is not None else None
+            if action_provider is not None:
+                command = action_provider(frame)
+            else:
+                if frame is not None and observation_provider is not None:
+                    observation = observation_provider(frame)
+                command = policy.decide(observation)
             if controller is not None:
                 controller.send(command)
             targets = action_to_position_targets(dofs, neutral_pose, command, phase=phase)
